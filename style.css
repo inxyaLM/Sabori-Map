@@ -1,14 +1,18 @@
 /* ==========================================================================
-   0. 基本設定とカラーテーマ
+   0. 基本設定とカラーテーマ（昼間モードのメリハリ大幅強化版！）
    ========================================================================== */
 :root {
-    --bg-color: #f5f6fa;
-    --card-bg: #ffffff;
-    --text-color: #2c3e50;
-    --accent-color: #e74c3c;
-    --panel-bg: #ffffff;
-    --header-bg: #2c3e50;
-    --header-text: #ffffff;
+    --bg-color: #eef1f6;        /* 昼：背景を少しだけ暗くして、白いカードが引き立つように */
+    --card-bg: #ffffff;         /* 昼：カードは真っ白 */
+    --text-color: #2c3e50;       /* 昼：文字はクッキリした濃いネイビー */
+    --accent-color: #e74c3c;     /* 昼：アクセントは情熱の赤 */
+    --panel-bg: #ffffff;        /* 昼：操作パネルは白 */
+    --header-bg: #2c3e50;       /* 昼：ヘッダーは引き締まるネイビー */
+    --header-text: #ffffff;     /* 昼：ヘッダー文字は白 */
+    
+    /* ✨ 新設：昼間モード用のパキッとした境界線とクッキリした影 */
+    --border-color: #cbd5e1;    /* ガッツリ見えるグレーの線 */
+    --card-shadow: 0 3px 8px rgba(0, 0, 0, 0.12); /* スマホで見やすいハッキリした影 */
 }
 
 [data-theme="dark"] {
@@ -19,6 +23,8 @@
     --panel-bg: #2d2d2d;
     --header-bg: #111111;
     --header-text: #ffffff;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --card-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 [data-theme="stealth"] {
@@ -29,6 +35,8 @@
     --panel-bg: #111111;
     --header-bg: #000000;
     --header-text: #00ff00;
+    --border-color: #00ff00;
+    --card-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
 }
 
 * {
@@ -105,7 +113,7 @@ body {
 .control-panel {
     padding: 12px;
     background-color: var(--panel-bg);
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    border-bottom: 2px solid var(--border-color);
     z-index: 20;
 }
 
@@ -168,8 +176,8 @@ body {
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: var(--card-shadow); /* ✨ 昼夜で影の強さが自動で切り替わる！ */
+    border: 1px solid var(--border-color); /* ✨ 境界線を見やすい色に固定！ */
     transition: all 0.2s ease;
 }
 
