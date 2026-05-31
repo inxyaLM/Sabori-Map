@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>東海営業マン専用：サボりスポットマップ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">🕶️ SABORI MAP</div>
+            <div class="splash-sub">TOKAI SALESMAN EDITION</div>
+            <div class="splash-loader">
+                <div class="loader-bar"></div>
+            </div>
+            <div class="splash-status">SYSTEM BOOTING...</div>
+        </div>
+    </div>
+
+    <header class="app-header">
+        <h1>東海営業マン専用：サボりスポットマップ</h1>
+    </header>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <div id="content-container">
+        
+        <div class="control-panel">
+            <div class="panel-row">
+                <button id="gps-btn" class="gps-button">📍 現在地から探す</button>
+                <div class="theme-area">
+                    <select id="theme-selector">
+                        <option value="light">☀️ 昼間モード</option>
+                        <option value="dark" selected>🌙 夜間モード</option>
+                        <option value="stealth">🕶️ 極秘モード</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="list-header-area">
+                <h2>📍 周辺のサボりスポット</h2>
+                <div class="sort-container">
+                    <label for="sort-selector">並び替え : </label>
+                    <select id="sort-selector">
+                        <option value="user-distance">📍 現在地から近い順</option>
+                        <option value="selected-distance">🎯 選択地から近い順</option>
+                        <option value="hidden-level">🕶️ 隠蔽率が高い順</option>
+                        <option value="parking-easy">🚗 駐車が楽な順</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="spot-list"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
