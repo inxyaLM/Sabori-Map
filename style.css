@@ -214,81 +214,82 @@ select {
 }
 
 /* ==========================================================================
-   4. 🪟 【大改造！】四角いフローティングミニマップ（小窓）＆ 全画面拡大
+   4. 🪟 【CSSバグ完全一掃！】四角いフローティングミニマップ（小窓）
    ========================================================================== */
 .floating-mini-map {
-    position: absolute;
-    bottom: 25px;
-    left: 25px;
-    width: 100px;   /* 🔷 こだわりの小さめ四角形 */
-    height: 100px;
-    border-radius: 8px; /* 角をほんのり丸くした綺麗な四角形 */
-    border: 3px solid var(--accent-color);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    z-index: 150;   /* 最前面に配置 */
-    overflow: hidden;
+    position: absolute !important;
+    bottom: 25px !important;
+    left: 25px !important;
+    width: 100px !important;   /* 🔷 100%四角形を強制 */
+    height: 100px !important;
+    border-radius: 12px !important; /* 絶対に丸（50%）にさせない、綺麗な角丸四角形 */
+    border: 3px solid var(--accent-color) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+    z-index: 150 !important;
+    overflow: hidden !important;
     
-    /* 初期状態（隠し状態） */
-    opacity: 0;
-    transform: scale(0.5) translateY(20px);
-    pointer-events: none;
+    /* アニメーションの初期状態 */
+    opacity: 0 !important;
+    transform: scale(0.5) translateY(20px) !important;
+    pointer-events: none !important;
     
-    /* ぬるっと滑らかに拡大縮小させるための設定 */
+    /* ヌルッと動かすトランジション */
     transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 left 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 opacity 0.3s ease,
-                transform 0.3s ease;
+                transform 0.3s ease !important;
 }
 
-/* 小窓の中にあるリアルタイム地図の入れ物 */
+/* 小窓の中の地図のサイズをコンテナに100%フィット */
 #mini-map {
-    width: 100%;
-    height: 100%;
-    background-color: #ddd;
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
 }
 
-/* 地図が隠れた時に付与されるアクティブクラス（通常小窓モード） */
+/* スクロールして地図が隠れたらフワッと出現 */
 .floating-mini-map.active {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    pointer-events: auto;
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+    pointer-events: auto !important;
 }
 
-/* 🔥【大注目！】ワンタップされて「全画面地図」に変身したときのスタイル */
+/* 🔥 タップされて「全画面地図」に変身した時の最強スタイル（!importantで古い丸型設定を完全破壊） */
 .floating-mini-map.fullscreen {
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    border-radius: 0px !important; /* 全画面なので四角形をパキッと */
+    border-radius: 0px !important; /* 画面全体を覆うのでパキッと四角に */
     border: none !important;
-    z-index: 200; /* ヘッダーすら覆い隠す完全フルスクリーン */
+    z-index: 200 !important; /* ヘッダーの上までジャック */
+    transform: none !important;
 }
 
-/* 全画面地図を閉じるためのスタイリッシュな半透明ボタン */
+/* 全画面地図を閉じる半透明ボタン */
 .close-map-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    padding: 10px 18px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    z-index: 1000; /* 地図のピンより手前に */
-    display: none; /* 通常時は隠しておく */
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    position: absolute !important;
+    top: 20px !important;
+    right: 20px !important;
+    padding: 10px 18px !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 20px !important;
+    font-size: 0.9rem !important;
+    font-weight: bold !important;
+    z-index: 1000 !important;
+    display: none !important; /* 通常の小窓の時は絶対に隠す */
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
 }
 
-/* 全画面モードになった時だけ閉じるボタンを出現させる */
+/* 全画面モードの時だけ、この「閉じるボタン」をドカンと表示 */
 .floating-mini-map.fullscreen .close-map-btn {
-    display: block;
+    display: block !important;
 }
 
 /* ==========================================================================
