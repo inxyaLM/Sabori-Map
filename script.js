@@ -20,11 +20,11 @@ const miniMarkers = {};
 // ==========================================================================
 const DEFAULT_COORDS = [35.1325, 136.9085];
 
-// ① メイン地図（通常通り、街名や文字あり）
+// ① メイン地図（通常通り、街名や文字ありのOpenStreetMap）
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ② 小窓用ミニ地図（🔥【大改造】地名などの文字を完全シャットアウトした地図デザイン！）
+// ② 小窓用ミニ地図（操作系を初期ロック）
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
@@ -35,8 +35,11 @@ const miniMap = L.map('mini-map', {
     touchZoom: false
 }).setView(DEFAULT_COORDS, 10);
 
-// 文字情報（ラベリング）を一切排除したクールな地図タイルを採用
-L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png').addTo(miniMap);
+// 🔥【401エラー完全対策！】登録・キー完全不要の文字なし・ダーク調地図タイル（CartoDB公式）を採用！
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 20
+}).addTo(miniMap);
 
 // 両方の地図にピン（マーカー）を完全同期して配置
 satoriSpots.forEach(spot => {
