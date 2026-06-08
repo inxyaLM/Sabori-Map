@@ -18,9 +18,12 @@ const markers = {};
 // 2. 地図の初期化
 // ==========================================================================
 const DEFAULT_COORDS = [35.1325, 136.9085];
+// ズームコントロールを非表示にしてスマホ画面をスッキリに
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
 satoriSpots.forEach(spot => {
     const marker = L.marker([spot.lat, spot.lng]).addTo(map)
@@ -31,7 +34,7 @@ satoriSpots.forEach(spot => {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    return str.replace(/[&<>"']/g, m => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' }[m]));
 }
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -43,7 +46,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 }
 
 // ==========================================================================
-// 4. UI描画ロジック ＆ 起動時ピョコッ仕込み
+// 4. UI描画ロジック
 // ==========================================================================
 function renderSpots() {
     const listContainer = document.getElementById('spot-list');
@@ -116,7 +119,7 @@ function applySort(mode) {
 }
 
 function startNavigation(lat, lng) {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank', 'noopener,noreferrer');
+    window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank', 'noopener,noreferrer');
 }
 
 // ==========================================================================
@@ -126,15 +129,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
     renderSpots();
 
-    // 🌟 1. アプリ起動直後にリストをピョコッとバウンスさせる演出
+    // 🌟 1. アプリ起動直後にリスト全体をピョコッとバウンスさせる演出
     const listContainer = document.getElementById('spot-list');
     if (listContainer) {
         listContainer.classList.add('list-bounce-animation');
-        // アニメーションが終わったらクラスを外して、通常のスクロールに影響が出ないようにする
         setTimeout(() => { listContainer.classList.remove('list-bounce-animation'); }, 800);
     }
 
-    // 📍 GPSトリガー関数（本体）
+    // 📍 GPSトリガー関数
     function triggerGpsHardware(onComplete) {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -172,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         applySort('user-distance');
     }
 
-    // ボタンタップでのGPS起動
     const gpsBtn = document.getElementById('gps-btn');
     if (gpsBtn) {
         gpsBtn.addEventListener('click', () => {
@@ -194,54 +195,52 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollArea.addEventListener('scroll', () => {
             const panelTop = triggerPanel.getBoundingClientRect().top;
             if (panelTop <= 50) {
-                miniMapContainer.classList.add('active'); // 小窓出現
+                miniMapContainer.classList.add('active');
             } else {
-                miniMapContainer.classList.remove('active'); // 小窓隠す
+                miniMapContainer.classList.remove('active');
             }
         });
 
-        // 小窓タップで最上部に滑らかに戻る
         miniMapContainer.addEventListener('click', () => {
             scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 
-    // 🔄 3. 【新設！】引っ張り画面更新（Pull-to-Refresh）のタッチロジック
+    // 🔄 3. 【バグ修正完了！】引っ張り画面更新（Pull-to-Refresh）のタッチロジック
     let startY = 0;
     let currentY = 0;
     let isPulling = false;
     const loader = document.getElementById('pull-to-refresh-loader');
 
     if (scrollArea && loader) {
-        // 画面に指が触れた瞬間
         scrollArea.addEventListener('touchstart', (e) => {
-            // スクロールエリアが一番上にある時だけ引っ張り判定を開始する
+            // ✨ 地図（#map）の中や、その中にあるピンを触っている時は、引っ張り更新の判定を絶対に開始しない！
+            if (e.target.closest('#map')) {
+                isPulling = false;
+                return;
+            }
+            
             if (scrollArea.scrollTop === 0) {
                 startY = e.touches[0].pageY;
                 isPulling = true;
             }
         }, { passive: true });
 
-        // 指をつけたまま下に動かしている最中
         scrollArea.addEventListener('touchmove', (e) => {
             if (!isPulling) return;
             currentY = e.touches[0].pageY;
             const pullDistance = currentY - startY;
 
-            // 下方向に50px以上ググッと引っ張ったら
             if (pullDistance > 50 && scrollArea.scrollTop === 0) {
-                loader.classList.add('pulling'); // ローダーエリアをシュッと見せる
+                loader.classList.add('pulling');
             }
         }, { passive: true });
 
-        // 指を画面から離した瞬間
         scrollArea.addEventListener('touchend', () => {
             if (loader.classList.contains('pulling')) {
-                // ローダーの文字を「更新中」に変えて、実際にGPSを再起動する
                 loader.querySelector('.refresh-text').innerText = "⚡ GPSハッキング中...";
                 
                 triggerGpsHardware(() => {
-                    // 完了したらローダーを引っ込めて文字を元に戻す
                     loader.classList.remove('pulling');
                     setTimeout(() => {
                         loader.querySelector('.refresh-text').innerText = "📍 現在地を再取得中...";
@@ -252,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // セレクター連動
     document.getElementById('sort-selector')?.addEventListener('change', e => applySort(e.target.value));
     document.getElementById('theme-selector')?.addEventListener('change', e => document.body.setAttribute('data-theme', e.target.value));
 });
