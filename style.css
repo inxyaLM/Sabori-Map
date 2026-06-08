@@ -209,12 +209,12 @@ select {
 }
 
 /* ==========================================================================
-   4. 🪟 左下のフローティングミニマップ（元のデザインを完全死守）
+   4. 🪟 左下のフローティングミニマップ（スクロールに置いていかれない完全追跡版）
    ========================================================================== */
 .floating-mini-map {
-    position: absolute !important;
+    position: fixed !important; /* 👈 absolute から fixed に変更！これで画面の左下にガチッとピン留めされます！ */
     bottom: 25px !important;
-    left: 25px !important;
+    left: 25px !important; 
     width: 100px !important;   
     height: 100px !important;
     border-radius: 12px !important; 
@@ -223,8 +223,10 @@ select {
     z-index: 150 !important;
     overflow: hidden !important;
     
+    /* 初期状態は非表示 */
     opacity: 0 !important;
     transform: scale(0.5) translateY(20px) !important;
+    pointer-events: none !important;
     
     transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
@@ -235,7 +237,6 @@ select {
                 transform 0.3s ease !important;
 }
 
-/* 小窓の時は文字ノイズを消し、タップを100%コンテナが拾えるようにイベントを制御 */
 .floating-mini-map #mini-map {
     width: 100% !important;
     height: 100% !important;
@@ -243,7 +244,6 @@ select {
     filter: contrast(120%) brightness(90%) saturate(80%); 
 }
 
-/* 小窓時は中のピンなどのタッチ判定を無効化して、全体が1つのボタンとして全画面化するように戻す */
 .floating-mini-map:not(.fullscreen) #mini-map {
     pointer-events: none !important; 
 }
@@ -252,13 +252,14 @@ select {
     opacity: 0.65 !important; 
 }
 
-/* アクティブ化 */
+/* 条件クリア時に付与されるアクティブクラス（画面の「絶対的左下」に追跡居座り！） */
 .floating-mini-map.active {
     opacity: 1 !important;
     transform: scale(1) translateY(0) !important;
+    pointer-events: auto !important;
 }
 
-/* 全画面化 */
+/* 全画面化トランスフォーム */
 .floating-mini-map.fullscreen {
     bottom: 0 !important;
     left: 0 !important;
@@ -272,7 +273,7 @@ select {
 
 .floating-mini-map.fullscreen #mini-map {
     filter: none !important;
-    pointer-events: auto !important; /* 全画面になったらピンのタップを解禁 */
+    pointer-events: auto !important;
 }
 
 /* ポップアップ内のGoogleナビリンク */
@@ -313,7 +314,7 @@ select {
 
 /* ==========================================================================
    🔍 上部中央の最強検索バー（全画面時のみ登場）
-   ========================================================================= */
+   ========================================================================== */
 .map-search-container {
     position: absolute !important;
     top: 20px !important;

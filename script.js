@@ -118,7 +118,7 @@ function renderSpots() {
     listContainer.appendChild(fragment);
 }
 
-// 🎯 リストタップ時は「大画面カメラ移動」＋「小窓の中央へピンを捉える」連動だけを実行！
+// 🎯 リストタップ時は「大画面カメラ移動」＋「小窓の中央へ追従」だけを実行！
 function focusOnSpot(id) {
     if (appState.selectedSpotId === id) {
         appState.selectedSpotId = null;
@@ -132,13 +132,9 @@ function focusOnSpot(id) {
     map.closePopup();
     miniMap.closePopup();
 
-    // 大地図の滑らかなカメラ移動
     map.flyTo([spot.lat + 0.003, spot.lng], 14, { animate: true, duration: 0.4 });
-    
-    // 小窓地図もピンが完璧に「中央」にくるように自動追従！
     miniMap.setView([spot.lat, spot.lng], 13);
 
-    // 大地図のポップアップのみ即展開
     if (mainMarkers[id]) mainMarkers[id].openPopup();
 
     applySort('selected-distance');
@@ -152,14 +148,14 @@ function applySort(mode) {
 }
 
 // ==========================================================================
-// 6. メインコントロール ＆ ジェスチャー・イベント実装
+// 6. メインコントロール ＆ イベント実装
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
     renderSpots();
 
     const scrollArea = document.querySelector('.scrollable-area');
-    const triggerPanel = document.getElementById('trigger-panel');
+    const triggerPanel = document.getElementById('trigger-panel'); // 👈 境界線となるコントロールパネル
     const miniMapContainer = document.getElementById('mini-map-container');
     const closeMapBtn = document.getElementById('close-fullscreen-btn');
     const mapSearchInput = document.getElementById('map-search-input');
@@ -238,29 +234,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 🗺️ 【完全復旧】以前伝えてもらった通りの表示タイミングをガッチリ再現！
+    // 🗺️ 【完全復旧】大地図が隠れたら画面の「左下」にフワッと出現する完璧なスクロール連動を再実装！
     if (scrollArea && triggerPanel && miniMapContainer) {
         scrollArea.addEventListener('scroll', () => {
             if (miniMapContainer.classList.contains('fullscreen')) return;
 
             const panelTop = triggerPanel.getBoundingClientRect().top;
-            // 以前教えてもらった完璧な境界線のタイミング
+            
+            // コントロールパネルがヘッダーのすぐ下（50px）を通過して、大地図が完全に画面外に消えたら
             if (panelTop <= 50) {
-                miniMapContainer.classList.add('active');
+                miniMapContainer.classList.add('active'); // 左下に出現！
                 miniMap.invalidateSize();
             } else {
-                miniMapContainer.classList.remove('active');
+                miniMapContainer.classList.remove('active'); // 大地図が戻ってきたら左下から消滅！
             }
         });
 
-        // 🎯 【完全復旧】地図をタップした時は「全画面化」だけを行う！！！
+        // 🎯 【完全復旧】左下の地図小窓をタップした時は「100%全画面化」の動きに完全固定！
         miniMapContainer.addEventListener('click', (e) => {
             if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container')) return;
             
             if (!miniMapContainer.classList.contains('fullscreen')) {
                 miniMapContainer.classList.add('fullscreen');
                 
-                // 全画面になったのでドラッグやズーム、ピンのタップ判定をすべて解放！
+                // 全画面時のみ、中の地図の操作やピンのタッチを全解放
                 miniMap.dragging.enable();
                 miniMap.touchZoom.enable();
                 miniMap.doubleClickZoom.enable();
@@ -281,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             
-            // 小窓に戻るので操作系やピン判定を再ロック
+            // 小窓に戻るので、誤操作防止のために操作系やピン判定を再ロック
             miniMap.dragging.disable();
             miniMap.touchZoom.disable();
             miniMap.doubleClickZoom.disable();
