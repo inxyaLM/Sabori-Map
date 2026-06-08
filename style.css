@@ -34,7 +34,7 @@ html, body {
     margin: 0;
     padding: 0;
     width: 100%;
-    height: 100dvh;
+    height: 100dvh; 
     overflow: hidden;
     background-color: var(--bg-color);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -65,7 +65,7 @@ html, body {
 
 .app-container {
     width: 100%;
-    height: calc(100vh - 50px);
+    height: calc(100dvh - 50px); 
     margin-top: 50px;
     position: relative;
 }
@@ -209,10 +209,10 @@ select {
 }
 
 /* ==========================================================================
-   4. 🪟 左下のフローティングミニマップ（スクロールに置いていかれない完全追跡版）
+   4. 🪟 左下のフローティングミニマップ（画面左下固定・全画面時見切れ完全修正版）
    ========================================================================== */
 .floating-mini-map {
-    position: fixed !important; /* 👈 absolute から fixed に変更！これで画面の左下にガチッとピン留めされます！ */
+    position: fixed !important; 
     bottom: 25px !important;
     left: 25px !important; 
     width: 100px !important;   
@@ -252,19 +252,20 @@ select {
     opacity: 0.65 !important; 
 }
 
-/* 条件クリア時に付与されるアクティブクラス（画面の「絶対的左下」に追跡居座り！） */
+/* 条件クリア時に付与されるアクティブクラス */
 .floating-mini-map.active {
     opacity: 1 !important;
     transform: scale(1) translateY(0) !important;
     pointer-events: auto !important;
 }
 
-/* 全画面化トランスフォーム */
+/* 🔥 全画面化トランスフォーム（ヘッダー50pxの下に完璧に収める修正） */
 .floating-mini-map.fullscreen {
+    top: 50px !important; /* 👈 top: 0 から 50px に変更！黒いヘッダーの真下から開始させる */
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 100dvh !important;
+    height: calc(100dvh - 50px) !important; /* 👈 100dvh から ヘッダーの50pxを引き算して画面最下部にピタッと合わせる！ */
     border-radius: 0px !important; 
     border: none !important;
     z-index: 200 !important; 
@@ -290,22 +291,22 @@ select {
     font-size: 0.85rem;
 }
 
-/* 右上の閉じるボタン */
+/* 🔥 右上の「閉じる」ボタン（見切れを回避し、より押しやすい位置に調整） */
 .close-map-btn {
     position: absolute !important;
-    top: 24px !important;
-    right: 20px !important;
-    padding: 10px 18px !important;
-    background-color: rgba(0, 0, 0, 0.8) !important;
+    bottom: 25px !important; /* 👈 topから「bottom」に変更し、Chromeの下部バーより少し上の安全圏に配置！ */
+    right: 25px !important;
+    padding: 12px 22px !important;
+    background-color: rgba(0, 0, 0, 0.9) !important;
     color: white !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
-    border-radius: 20px !important;
-    font-size: 0.9rem;
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 24px !important;
+    font-size: 0.95rem;
     font-weight: bold !important;
     z-index: 1000 !important;
     display: none !important; 
     cursor: pointer !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
 }
 
 .floating-mini-map.fullscreen .close-map-btn {
@@ -313,14 +314,14 @@ select {
 }
 
 /* ==========================================================================
-   🔍 上部中央の最強検索バー（全画面時のみ登場）
+   🔍 上部中央の最強検索バー（全画面時のみ登場・見切れ位置修正）
    ========================================================================== */
 .map-search-container {
     position: absolute !important;
-    top: 20px !important;
+    top: 15px !important; /* 👈 ヘッダーのすぐ下（地図の最上部）から15pxの位置に調整 */
     left: 50% !important;
     transform: translateX(-50%) translateY(-20px) !important; 
-    width: 55% !important;
+    width: 70% !important; /* 👈 横幅を少し広げて、文字を打ちやすく調整 */
     max-width: 400px !important;
     z-index: 1000 !important;
     opacity: 0 !important;
