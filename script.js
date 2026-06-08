@@ -16,7 +16,7 @@ const mainMarkers = {};
 const miniMarkers = {};
 
 // ==========================================================================
-// 2. 地図の初期化（同じオープンストリートマップを使用）
+// 2. 地図の初期化（完全同期）
 // ==========================================================================
 const DEFAULT_COORDS = [35.1325, 136.9085];
 
@@ -24,7 +24,7 @@ const DEFAULT_COORDS = [35.1325, 136.9085];
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ② 左下の小窓地図（大地図と同じタイルURLを使用して完全同期！）
+// ② 左下の小窓地図（初期状態はドラッグ等の操作を完全ロック）
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
@@ -36,14 +36,14 @@ const miniMap = L.map('mini-map', {
 }).setView(DEFAULT_COORDS, 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
 
-// 両方の地図にピン（マーカー）を配置
+// 両方の地図にピンを配置
 satoriSpots.forEach(spot => {
     // 大地図のピン
     const mainMarker = L.marker([spot.lat, spot.lng]).addTo(map).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    // 小窓地図のピン（クリックで文字覚醒 ＆ Googleナビリンク付き！）
+    // 小窓地図のピン（全画面時のみ覚醒するナビボタン付きポップアップ仕様）
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
     const miniPopupContent = `
         <div style="font-family:sans-serif; min-width:140px;">
@@ -52,12 +52,6 @@ satoriSpots.forEach(spot => {
         </div>
     `;
     const miniMarker = L.marker([spot.lat, spot.lng]).addTo(miniMap).bindPopup(miniPopupContent);
-    miniMarker.on('click', () => {
-        // 小窓が全画面じゃない時は、クリックされたら中央へ誘導
-        if (!document.getElementById('mini-map-container').classList.contains('fullscreen')) {
-            miniMap.setView([spot.lat, spot.lng], 13);
-        }
-    });
     miniMarkers[spot.id] = miniMarker;
 });
 
@@ -124,7 +118,7 @@ function renderSpots() {
     listContainer.appendChild(fragment);
 }
 
-// 🎯 【新機能】リストをタップした時、大地図だけでなく「小窓地図の中央」へピンを表示！
+// 🎯 リストタップ時は「大画面カメラ移動」＋「小窓の中央へピンを捉える」連動だけを実行！
 function focusOnSpot(id) {
     if (appState.selectedSpotId === id) {
         appState.selectedSpotId = null;
@@ -138,15 +132,14 @@ function focusOnSpot(id) {
     map.closePopup();
     miniMap.closePopup();
 
-    // ① 大地図を滑らかに誘導
+    // 大地図の滑らかなカメラ移動
     map.flyTo([spot.lat + 0.003, spot.lng], 14, { animate: true, duration: 0.4 });
     
-    // ② 左下の小窓地図も、ピンが完全に「中央」にくるように大爆走追従！
+    // 小窓地図もピンが完璧に「中央」にくるように自動追従！
     miniMap.setView([spot.lat, spot.lng], 13);
 
-    // ピンのポップアップを展開
+    // 大地図のポップアップのみ即展開
     if (mainMarkers[id]) mainMarkers[id].openPopup();
-    if (miniMarkers[id]) miniMarkers[id].openPopup();
 
     applySort('selected-distance');
 }
@@ -159,7 +152,7 @@ function applySort(mode) {
 }
 
 // ==========================================================================
-// 6. メインコントロール ＆ 拡張ジェスチャー実装
+// 6. メインコントロール ＆ ジェスチャー・イベント実装
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
@@ -171,21 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeMapBtn = document.getElementById('close-fullscreen-btn');
     const mapSearchInput = document.getElementById('map-search-input');
 
-    // 🔍 【新機能】全画面地図用・超リアルタイムピン検索フィルタリング
+    // 全画面地図用のリアルタイムピン検索
     if (mapSearchInput) {
         mapSearchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            
             satoriSpots.forEach(spot => {
                 const matchName = spot.name.toLowerCase().includes(query);
                 const matchDesc = spot.desc.toLowerCase().includes(query);
                 const matchTags = spot.tags.some(tag => tag.toLowerCase().includes(query));
 
                 if (query === '' || matchName || matchDesc || matchTags) {
-                    // マッチしたらピンを表示
                     if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
                 } else {
-                    // マッチしなければピンを非表示
                     if (miniMap.hasLayer(miniMarkers[spot.id])) miniMap.removeLayer(miniMarkers[spot.id]);
                 }
             });
@@ -203,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 (err) => {
                     console.warn("GPS失敗、仮の場所を設定します", err);
-                    processLocationSuccess(35.1709, 136.8815, false); // 名古屋駅
+                    processLocationSuccess(35.1709, 136.8815, false);
                     if (onComplete) onComplete();
                 },
                 { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -248,11 +238,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 🗺️ 【完全復旧】以前伝えてもらった通りの表示タイミングをガッチリ再現！
     if (scrollArea && triggerPanel && miniMapContainer) {
         scrollArea.addEventListener('scroll', () => {
             if (miniMapContainer.classList.contains('fullscreen')) return;
 
             const panelTop = triggerPanel.getBoundingClientRect().top;
+            // 以前教えてもらった完璧な境界線のタイミング
             if (panelTop <= 50) {
                 miniMapContainer.classList.add('active');
                 miniMap.invalidateSize();
@@ -261,14 +253,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 窓をポチッと叩いて全画面トランスフォーム！
+        // 🎯 【完全復旧】地図をタップした時は「全画面化」だけを行う！！！
         miniMapContainer.addEventListener('click', (e) => {
-            if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container') || e.target.closest('.leaflet-popup-pane')) return;
+            if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container')) return;
             
             if (!miniMapContainer.classList.contains('fullscreen')) {
                 miniMapContainer.classList.add('fullscreen');
                 
-                // 全画面時はドラッグやズームのロックを解放
+                // 全画面になったのでドラッグやズーム、ピンのタップ判定をすべて解放！
                 miniMap.dragging.enable();
                 miniMap.touchZoom.enable();
                 miniMap.doubleClickZoom.enable();
@@ -277,12 +269,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 閉じるボタン
+        // ✕ 閉じるボタン
         closeMapBtn.addEventListener('click', (e) => {
             e.stopPropagation(); 
             miniMapContainer.classList.remove('fullscreen');
             
-            // 検索バーをリセット
             if (mapSearchInput) {
                 mapSearchInput.value = '';
                 satoriSpots.forEach(spot => {
@@ -290,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             
-            // 小窓モードに戻るので再ロック
+            // 小窓に戻るので操作系やピン判定を再ロック
             miniMap.dragging.disable();
             miniMap.touchZoom.disable();
             miniMap.doubleClickZoom.disable();
