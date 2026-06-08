@@ -20,11 +20,11 @@ const miniMarkers = {};
 // ==========================================================================
 const DEFAULT_COORDS = [35.1325, 136.9085];
 
-// ① メイン地図
+// ① メイン地図（通常通り、街名や文字あり）
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ② 小窓用ミニ地図（操作系を完全ロックして最初はただの静止画っぽく見せる）
+// ② 小窓用ミニ地図（🔥【大改造】地名などの文字を完全シャットアウトした地図デザイン！）
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
@@ -34,16 +34,16 @@ const miniMap = L.map('mini-map', {
     scrollWheelZoom: false,
     touchZoom: false
 }).setView(DEFAULT_COORDS, 10);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+
+// 文字情報（ラベリング）を一切排除したクールな地図タイルを採用
+L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png').addTo(miniMap);
 
 // 両方の地図にピン（マーカー）を完全同期して配置
 satoriSpots.forEach(spot => {
-    // メイン用のピン
     const mainMarker = L.marker([spot.lat, spot.lng]).addTo(map).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    // ミニ用のピン
     const miniMarker = L.marker([spot.lat, spot.lng]).addTo(miniMap).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
     miniMarker.on('click', () => focusOnSpot(spot.id));
     miniMarkers[spot.id] = miniMarker;
@@ -51,7 +51,7 @@ satoriSpots.forEach(spot => {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    return str.replace(/[&<>"']/g, m => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": "'" }[m]));
 }
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -140,9 +140,8 @@ function applySort(mode) {
     renderSpots();
 }
 
-// 🎯【タイポ完全修正！】Googleマップナビ連動をバグなしに修正
 function startNavigation(lat, lng) {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank', 'noopener,noreferrer');
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank', 'noopener,noreferrer');
 }
 
 // ==========================================================================
@@ -152,14 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
     renderSpots();
 
-    // 🌟 1. アプリ起動直後のピョコッ演出
     const listContainer = document.getElementById('spot-list');
     if (listContainer) {
         listContainer.classList.add('list-bounce-animation');
         setTimeout(() => { listContainer.classList.remove('list-bounce-animation'); }, 800);
     }
 
-    // 📍 GPSトリガー関数
     function triggerGpsHardware(onComplete) {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -216,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 🔗 2. スクロール監視 ＆ 四角い小窓の全画面トランスフォーム
     const scrollArea = document.querySelector('.scrollable-area');
     const triggerPanel = document.getElementById('trigger-panel');
     const miniMapContainer = document.getElementById('mini-map-container');
@@ -235,37 +231,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 四角い小窓をタップで全画面に超拡大！
         miniMapContainer.addEventListener('click', (e) => {
             if (e.target.id === 'close-fullscreen-btn') return;
             
             if (!miniMapContainer.classList.contains('fullscreen')) {
                 miniMapContainer.classList.add('fullscreen');
-                
-                // 全画面モードになったのでドラッグやズームのロックを全解放
                 miniMap.dragging.enable();
                 miniMap.touchZoom.enable();
                 miniMap.doubleClickZoom.enable();
-                
                 setTimeout(() => { miniMap.invalidateSize(); }, 400);
             }
         });
 
-        // 全画面地図を閉じる
         closeMapBtn.addEventListener('click', (e) => {
             e.stopPropagation(); 
             miniMapContainer.classList.remove('fullscreen');
-            
-            // 通常の小窓に戻るので誤操作防止のため再度ロック
             miniMap.dragging.disable();
             miniMap.touchZoom.disable();
             miniMap.doubleClickZoom.disable();
-            
             setTimeout(() => { miniMap.invalidateSize(); }, 400);
         });
     }
 
-    // 🔄 3. 引っ張り画面更新（Pull-to-Refresh）のタッチロジック
     let startY = 0;
     let currentY = 0;
     let isPulling = false;
@@ -296,7 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollArea.addEventListener('touchend', () => {
             if (loader.classList.contains('pulling')) {
                 loader.querySelector('.refresh-text').innerText = "⚡ GPSハッキング中...";
-                
                 triggerGpsHardware(() => {
                     loader.classList.remove('pulling');
                     setTimeout(() => {
