@@ -87,7 +87,6 @@ html, body {
     -webkit-overflow-scrolling: touch;
     background-color: var(--bg-color);
     position: relative;
-    /* 引っ張り更新の時に、行き過ぎたバウンスで裏の白地が見えるのを防止 */
     overscroll-behavior-y: contain; 
 }
 
@@ -138,7 +137,7 @@ select {
 }
 
 /* ==========================================================================
-   3. サボりスポットカード ＆ 🌟起動時ピョコッ演出の仕込み
+   3. サボりスポットカード
    ========================================================================== */
 .spot-card {
     background-color: var(--card-bg);
@@ -150,27 +149,15 @@ select {
     transition: all 0.2s ease;
 }
 
-/* 🚀 アプリ起動時にリスト全体をピョコッと小気味よくバウンスさせるCSSクラス */
 .list-bounce-animation {
     animation: bounceIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
 @keyframes bounceIn {
-    0% {
-        transform: translateY(60px); /* 最初は少し下に沈んでいて */
-        opacity: 0;
-    }
-    60% {
-        transform: translateY(-8px); /* 勢いよくちょっと上に行き過ぎて */
-        opacity: 0.9;
-    }
-    80% {
-        transform: translateY(3px);  /* 反動でちょっとだけ下に落ちて */
-    }
-    100% {
-        transform: translateY(0);    /* カチッと定位置に止まる！ */
-        opacity: 1;
-    }
+    0% { transform: translateY(60px); opacity: 0; }
+    60% { transform: translateY(-8px); opacity: 0.9; }
+    80% { transform: translateY(3px); }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 .spot-name {
@@ -227,29 +214,81 @@ select {
 }
 
 /* ==========================================================================
-   4. 🪟 フローティングミニマップ（左下小窓）
+   4. 🪟 【大改造！】四角いフローティングミニマップ（小窓）＆ 全画面拡大
    ========================================================================== */
 .floating-mini-map {
     position: absolute;
     bottom: 25px;
     left: 25px;
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
+    width: 100px;   /* 🔷 こだわりの小さめ四角形 */
+    height: 100px;
+    border-radius: 8px; /* 角をほんのり丸くした綺麗な四角形 */
     border: 3px solid var(--accent-color);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    z-index: 90;
+    z-index: 150;   /* 最前面に配置 */
     overflow: hidden;
+    
+    /* 初期状態（隠し状態） */
     opacity: 0;
     transform: scale(0.5) translateY(20px);
     pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    
+    /* ぬるっと滑らかに拡大縮小させるための設定 */
+    transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+                height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+                bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+                left 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+                border-radius 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+                opacity 0.3s ease,
+                transform 0.3s ease;
 }
 
+/* 小窓の中にあるリアルタイム地図の入れ物 */
+#mini-map {
+    width: 100%;
+    height: 100%;
+    background-color: #ddd;
+}
+
+/* 地図が隠れた時に付与されるアクティブクラス（通常小窓モード） */
 .floating-mini-map.active {
     opacity: 1;
     transform: scale(1) translateY(0);
     pointer-events: auto;
+}
+
+/* 🔥【大注目！】ワンタップされて「全画面地図」に変身したときのスタイル */
+.floating-mini-map.fullscreen {
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0px !important; /* 全画面なので四角形をパキッと */
+    border: none !important;
+    z-index: 200; /* ヘッダーすら覆い隠す完全フルスクリーン */
+}
+
+/* 全画面地図を閉じるためのスタイリッシュな半透明ボタン */
+.close-map-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 10px 18px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    z-index: 1000; /* 地図のピンより手前に */
+    display: none; /* 通常時は隠しておく */
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* 全画面モードになった時だけ閉じるボタンを出現させる */
+.floating-mini-map.fullscreen .close-map-btn {
+    display: block;
 }
 
 /* ==========================================================================
@@ -257,7 +296,7 @@ select {
    ========================================================================== */
 .refresh-loader {
     width: 100%;
-    height: 0; /* 最初は高さをゼロにして完全に隠す */
+    height: 0;
     overflow: hidden;
     background-color: var(--header-bg);
     color: var(--header-text);
@@ -268,12 +307,11 @@ select {
     gap: 8px;
     font-size: 0.85rem;
     font-weight: bold;
-    transition: height 0.2s ease; /* 指を離した時にシュッと縮む */
+    transition: height 0.2s ease;
 }
 
-/* JavaScriptで引っ張り中の時にこのクラスを付与する */
 .refresh-loader.pulling {
-    height: 70px; /* 引っ張るとローダー領域がドカンと出現！ */
+    height: 70px;
 }
 
 .spinner {
