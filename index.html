@@ -1,53 +1,59 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SATORI MAP</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>SATORI MAP</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
 
-    <header class="app-header">
-        <h1>SABORI MAP</h1>
-    </header>
+        <header class="app-header">
+            <h1>SABORI MAP</h1>
+        </header>
 
-    <div class="app-container">
+        <div class="app-container">
 
-        <div class="scrollable-area">
-            
-            <div id="pull-to-refresh-loader" class="refresh-loader">
-                <div class="spinner"></div>
-                <span class="refresh-text">📍 現在地を再取得中...</span>
-            </div>
-            
-            <div id="map"></div>
-
-            <div class="control-panel" id="trigger-panel">
-                <div class="select-container">
-                    <select id="sort-selector">
-                        <option value="user-distance">📍 現在地から近い順</option>
-                        <option value="hidden-level">🕶️ 隠蔽レベルが高い順</option>
-                        <option value="parking-easy">🚗 駐車のしやすさ順</option>
-                    </select>
-                    <select id="theme-selector">
-                        <option value="dark">🕶️ 夜間迷彩</option>
-                        <option value="light">☀️ 昼間モード</option>
-                        <option value="stealth">📟 ステルス戦術</option>
-                    </select>
+            <div class="scrollable-area">
+                
+                <div id="pull-to-refresh-loader" class="refresh-loader">
+                    <div class="spinner"></div>
+                    <span class="refresh-text">📍 現在地を再取得中...</span>
                 </div>
-                <button id="gps-btn">📍 現在地から探す</button>
-            </div>
+                
+                <div id="map"></div>
 
-            <div id="spot-list">
+                <div class="control-panel" id="trigger-panel">
+                    <div class="select-container">
+                        <select id="sort-selector">
+                            <option value="user-distance">📍 現在地から近い順</option>
+                            <option value="hidden-level">🕶️ 隠蔽レベルが高い順</option>
+                            <option value="parking-easy">🚗 駐車のしやすさ順</option>
+                        </select>
+                        <select id="theme-selector">
+                            <option value="dark">🕶️ 夜間迷彩</option>
+                            <option value="light">☀️ 昼間モード</option>
+                            <option value="stealth">📟 ステルス戦術</option>
+                        </select>
+                    </div>
+                    <button id="gps-btn">📍 現在地から探す</button>
                 </div>
 
-        </div> <div id="mini-map-container" class="floating-mini-map">
-            <div id="mini-map"></div> <button id="close-fullscreen-btn" class="close-map-btn">✕ 閉じる</button>
+                <div id="spot-list">
+                    </div>
+
+            <div id="mini-map-container" class="floating-mini-map">
+        <div class="map-search-container">
+            <input type="text" id="map-search-input" class="map-search-input" placeholder="スポット名・キーワード・タグでピンを検索...">
         </div>
 
-    </div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+        <button id="close-fullscreen-btn" class="close-map-btn">✕ 閉じる</button>
+        
+        <div id="mini-map"></div>
+    </div>
+
+        </div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="script.js"></script>
+    </body>
+    </html>

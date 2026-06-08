@@ -14,31 +14,17 @@
     --card-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
-/* 🕶️ 夜間迷彩（文字の白さをマックスにして読みやすさを限界突破！） */
 [data-theme="dark"] {
     --bg-color: #121212;
     --card-bg: #1e1e1e;
-    --text-color: #ffffff;       /* 👈 完全に真っ白にしてコントラストを最強に */
-    --text-muted: #b0b3b8;       /* 👈 説明文などもくっきり見える明るいグレーに */
+    --text-color: #ffffff;       
+    --text-muted: #b0b3b8;       
     --accent-color: #3498db;
     --panel-bg: #1e1e1e;
     --header-bg: #000000;
     --header-text: #ffffff;
     --border-color: rgba(255, 255, 255, 0.15);
     --card-shadow: 0 4px 10px rgba(0,0,0,0.5);
-}
-
-[data-theme="stealth"] {
-    --bg-color: #000000;
-    --card-bg: #111111;
-    --text-color: #00ff00;
-    --text-muted: #00dd00;
-    --accent-color: #ff00ff;
-    --panel-bg: #111111;
-    --header-bg: #000000;
-    --header-text: #00ff00;
-    --border-color: #00ff00;
-    --card-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
 }
 
 /* ==========================================================================
@@ -141,7 +127,7 @@ select {
 }
 
 /* ==========================================================================
-   3. サボりスポットカード（読みやすさ重視へリファイン）
+   3. サボりスポットカード
    ========================================================================== */
 .spot-card {
     background-color: var(--card-bg);
@@ -150,7 +136,7 @@ select {
     margin-bottom: 14px;
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border-color);
-    color: var(--text-color); /* 確実にテーマごとの文字色を適用 */
+    color: var(--text-color);
     transition: all 0.2s ease;
 }
 
@@ -169,7 +155,6 @@ select {
     font-size: 1.15rem;
     font-weight: bold;
     margin-bottom: 8px;
-    color: var(--text-color);
 }
 
 .spot-tags {
@@ -186,24 +171,17 @@ select {
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 500;
-    border: 1px solid transparent;
 }
 
-/* 夜間迷彩の時はタグの背景を少し明るくして文字の輪郭を浮き立たせる */
 [data-theme="dark"] .tag {
     background-color: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.2);
-}
-[data-theme="stealth"] .tag {
-    background-color: rgba(0, 255, 0, 0.1);
-    border: 1px solid #00ff00;
 }
 
 .spot-status-row {
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
-    color: var(--text-color);
 }
 
 .spot-detail-content {
@@ -216,7 +194,7 @@ select {
     font-size: 0.9rem;
     line-height: 1.5;
     margin-bottom: 12px;
-    color: var(--text-muted); /* 読みやすい調整グレー */
+    color: var(--text-muted);
 }
 
 .navi-btn {
@@ -231,7 +209,7 @@ select {
 }
 
 /* ==========================================================================
-   4. 🪟 四角いフローティングミニマップ（小窓）
+   4. 🪟 フローティングミニマップ（小窓 ＆ 全画面）
    ========================================================================== */
 .floating-mini-map {
     position: absolute !important;
@@ -258,10 +236,15 @@ select {
                 transform 0.3s ease !important;
 }
 
-#mini-map {
+.floating-mini-map #mini-map {
     width: 100% !important;
     height: 100% !important;
     display: block !important;
+    filter: contrast(120%) brightness(90%) saturate(80%); 
+}
+
+.floating-mini-map:not(.fullscreen) .leaflet-tile-container {
+    opacity: 0.65 !important; 
 }
 
 .floating-mini-map.active {
@@ -279,6 +262,23 @@ select {
     border: none !important;
     z-index: 200 !important; 
     transform: none !important;
+}
+
+.floating-mini-map.fullscreen #mini-map {
+    filter: none !important;
+}
+
+.popup-navi-link {
+    display: block;
+    text-align: center;
+    background-color: var(--accent-color);
+    color: white !important;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-decoration: none;
+    margin-top: 6px;
+    font-size: 0.85rem;
 }
 
 .close-map-btn {
@@ -300,6 +300,49 @@ select {
 
 .floating-mini-map.fullscreen .close-map-btn {
     display: block !important;
+}
+
+/* ==========================================================================
+   🔍 上部中央の最強検索バー
+   ========================================================================== */
+.map-search-container {
+    position: absolute !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) translateY(-20px) !important; 
+    width: 55% !important;
+    max-width: 400px !important;
+    z-index: 1000 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease !important;
+}
+
+.floating-mini-map.fullscreen .map-search-container {
+    transform: translateX(-50%) translateY(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.map-search-input {
+    width: 100% !important;
+    padding: 11px 16px !important;
+    border-radius: 24px !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    color: #ffffff !important;
+    font-size: 0.9rem !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+
+.map-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.map-search-input:focus {
+    border-color: var(--accent-color) !important;
 }
 
 /* ==========================================================================

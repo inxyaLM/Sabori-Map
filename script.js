@@ -16,15 +16,15 @@ const mainMarkers = {};
 const miniMarkers = {};
 
 // ==========================================================================
-// 2. 地図の初期化（メイン地図 ＆ 小窓用ミニ地図のダブル生成）
+// 2. 地図の初期化（同じオープンストリートマップを使用）
 // ==========================================================================
 const DEFAULT_COORDS = [35.1325, 136.9085];
 
-// ① メイン地図（通常通り、街名や文字ありのOpenStreetMap）
+// ① メインの大地図
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ② 小窓用ミニ地図（操作系を初期ロック）
+// ② 左下の小窓地図（大地図と同じタイルURLを使用して完全同期！）
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
@@ -34,21 +34,30 @@ const miniMap = L.map('mini-map', {
     scrollWheelZoom: false,
     touchZoom: false
 }).setView(DEFAULT_COORDS, 10);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
 
-// 🔥【401エラー完全対策！】登録・キー完全不要の文字なし・ダーク調地図タイル（CartoDB公式）を採用！
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
-    maxZoom: 20
-}).addTo(miniMap);
-
-// 両方の地図にピン（マーカー）を完全同期して配置
+// 両方の地図にピン（マーカー）を配置
 satoriSpots.forEach(spot => {
+    // 大地図のピン
     const mainMarker = L.marker([spot.lat, spot.lng]).addTo(map).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    const miniMarker = L.marker([spot.lat, spot.lng]).addTo(miniMap).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
-    miniMarker.on('click', () => focusOnSpot(spot.id));
+    // 小窓地図のピン（クリックで文字覚醒 ＆ Googleナビリンク付き！）
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+    const miniPopupContent = `
+        <div style="font-family:sans-serif; min-width:140px;">
+            <b style="font-size:0.9rem; display:block; margin-bottom:4px;">${escapeHtml(spot.name)}</b>
+            <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="popup-navi-link">🚗 ここへナビする</a>
+        </div>
+    `;
+    const miniMarker = L.marker([spot.lat, spot.lng]).addTo(miniMap).bindPopup(miniPopupContent);
+    miniMarker.on('click', () => {
+        // 小窓が全画面じゃない時は、クリックされたら中央へ誘導
+        if (!document.getElementById('mini-map-container').classList.contains('fullscreen')) {
+            miniMap.setView([spot.lat, spot.lng], 13);
+        }
+    });
     miniMarkers[spot.id] = miniMarker;
 });
 
@@ -103,7 +112,8 @@ function renderSpots() {
         const cardEl = cardWrapper.querySelector('.spot-card');
         cardEl.addEventListener('click', e => {
             if (e.target.classList.contains('navi-btn')) {
-                startNavigation(spot.lat, spot.lng);
+                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+                window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
             } else {
                 focusOnSpot(spot.id);
             }
@@ -114,6 +124,7 @@ function renderSpots() {
     listContainer.appendChild(fragment);
 }
 
+// 🎯 【新機能】リストをタップした時、大地図だけでなく「小窓地図の中央」へピンを表示！
 function focusOnSpot(id) {
     if (appState.selectedSpotId === id) {
         appState.selectedSpotId = null;
@@ -127,9 +138,13 @@ function focusOnSpot(id) {
     map.closePopup();
     miniMap.closePopup();
 
+    // ① 大地図を滑らかに誘導
     map.flyTo([spot.lat + 0.003, spot.lng], 14, { animate: true, duration: 0.4 });
-    miniMap.setView([spot.lat, spot.lng], 14);
+    
+    // ② 左下の小窓地図も、ピンが完全に「中央」にくるように大爆走追従！
+    miniMap.setView([spot.lat, spot.lng], 13);
 
+    // ピンのポップアップを展開
     if (mainMarkers[id]) mainMarkers[id].openPopup();
     if (miniMarkers[id]) miniMarkers[id].openPopup();
 
@@ -143,10 +158,6 @@ function applySort(mode) {
     renderSpots();
 }
 
-function startNavigation(lat, lng) {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank', 'noopener,noreferrer');
-}
-
 // ==========================================================================
 // 6. メインコントロール ＆ 拡張ジェスチャー実装
 // ==========================================================================
@@ -154,10 +165,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
     renderSpots();
 
-    const listContainer = document.getElementById('spot-list');
-    if (listContainer) {
-        listContainer.classList.add('list-bounce-animation');
-        setTimeout(() => { listContainer.classList.remove('list-bounce-animation'); }, 800);
+    const scrollArea = document.querySelector('.scrollable-area');
+    const triggerPanel = document.getElementById('trigger-panel');
+    const miniMapContainer = document.getElementById('mini-map-container');
+    const closeMapBtn = document.getElementById('close-fullscreen-btn');
+    const mapSearchInput = document.getElementById('map-search-input');
+
+    // 🔍 【新機能】全画面地図用・超リアルタイムピン検索フィルタリング
+    if (mapSearchInput) {
+        mapSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            
+            satoriSpots.forEach(spot => {
+                const matchName = spot.name.toLowerCase().includes(query);
+                const matchDesc = spot.desc.toLowerCase().includes(query);
+                const matchTags = spot.tags.some(tag => tag.toLowerCase().includes(query));
+
+                if (query === '' || matchName || matchDesc || matchTags) {
+                    // マッチしたらピンを表示
+                    if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
+                } else {
+                    // マッチしなければピンを非表示
+                    if (miniMap.hasLayer(miniMarkers[spot.id])) miniMap.removeLayer(miniMarkers[spot.id]);
+                }
+            });
+        });
     }
 
     function triggerGpsHardware(onComplete) {
@@ -216,11 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const scrollArea = document.querySelector('.scrollable-area');
-    const triggerPanel = document.getElementById('trigger-panel');
-    const miniMapContainer = document.getElementById('mini-map-container');
-    const closeMapBtn = document.getElementById('close-fullscreen-btn');
-
     if (scrollArea && triggerPanel && miniMapContainer) {
         scrollArea.addEventListener('scroll', () => {
             if (miniMapContainer.classList.contains('fullscreen')) return;
@@ -234,28 +261,46 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // 窓をポチッと叩いて全画面トランスフォーム！
         miniMapContainer.addEventListener('click', (e) => {
-            if (e.target.id === 'close-fullscreen-btn') return;
+            if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container') || e.target.closest('.leaflet-popup-pane')) return;
             
             if (!miniMapContainer.classList.contains('fullscreen')) {
                 miniMapContainer.classList.add('fullscreen');
+                
+                // 全画面時はドラッグやズームのロックを解放
                 miniMap.dragging.enable();
                 miniMap.touchZoom.enable();
                 miniMap.doubleClickZoom.enable();
+                
                 setTimeout(() => { miniMap.invalidateSize(); }, 400);
             }
         });
 
+        // 閉じるボタン
         closeMapBtn.addEventListener('click', (e) => {
             e.stopPropagation(); 
             miniMapContainer.classList.remove('fullscreen');
+            
+            // 検索バーをリセット
+            if (mapSearchInput) {
+                mapSearchInput.value = '';
+                satoriSpots.forEach(spot => {
+                    if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
+                });
+            }
+            
+            // 小窓モードに戻るので再ロック
             miniMap.dragging.disable();
             miniMap.touchZoom.disable();
             miniMap.doubleClickZoom.disable();
+            miniMap.closePopup();
+            
             setTimeout(() => { miniMap.invalidateSize(); }, 400);
         });
     }
 
+    // 引っ張り更新のタッチロジック
     let startY = 0;
     let currentY = 0;
     let isPulling = false;
@@ -263,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (scrollArea && loader) {
         scrollArea.addEventListener('touchstart', (e) => {
-            if (e.target.closest('#map')) {
+            if (e.target.closest('#map') || e.target.closest('#mini-map-container')) {
                 isPulling = false;
                 return;
             }
