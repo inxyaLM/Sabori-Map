@@ -11,20 +11,25 @@ const satoriSpots = [
     { id: 6, name: "名塚・秩父通付近の大型店舗裏", lat: 35.1998, lng: 136.8922, tags: ["☕ ローカル喫茶店", "🚬 喫煙可"], desc: "西区の主要幹線から一本入った住宅街のオアシス。一息つきたいときや、次のアポまでの時間調整にベストな隠れ喫茶近く。", hiddenLevel: 3, parkingEasy: 4 }
 ];
 
-const appState = { currentLat: null, currentLng: null, selectedSpotId: null, userLocationMarker: null, miniUserMarker: null };
+const appState = {
+    currentLat: null,
+    currentLng: null,
+    selectedSpotId: null,
+    userLocationMarker: null,
+    miniUserMarker: null
+};
+
 const mainMarkers = {};
 const miniMarkers = {};
 
 // ==========================================================================
-// 2. 地図の初期化（完全同期）
+// 2. 地図の初期化
 // ==========================================================================
 const DEFAULT_COORDS = [35.1325, 136.9085];
 
-// ① メインの大地図
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ② 左下の小窓地図
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
@@ -36,15 +41,12 @@ const miniMap = L.map('mini-map', {
 }).setView(DEFAULT_COORDS, 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
 
-// 両方の地図にピンを配置
 satoriSpots.forEach(spot => {
-    // 大地図のピン
     const mainMarker = L.marker([spot.lat, spot.lng]).addTo(map).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    // 小窓地図のピン（脆弱性を修正し、テンプレートリテラルで正しく展開）
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
     const miniPopupContent = `
         <div style="font-family:sans-serif; min-width:140px;">
             <b style="font-size:0.9rem; display:block; margin-bottom:4px;">${escapeHtml(spot.name)}</b>
@@ -57,7 +59,7 @@ satoriSpots.forEach(spot => {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    return str.replace(/[&<>"']/g, m => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' }[m]));
 }
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -69,7 +71,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 }
 
 // ==========================================================================
-// 4. UI描画ロジック
+// 3. UIカード描画ロジック
 // ==========================================================================
 function renderSpots() {
     const listContainer = document.getElementById('spot-list');
@@ -106,7 +108,7 @@ function renderSpots() {
         const cardEl = cardWrapper.querySelector('.spot-card');
         cardEl.addEventListener('click', e => {
             if (e.target.classList.contains('navi-btn')) {
-                const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
                 window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
             } else {
                 focusOnSpot(spot.id);
@@ -147,17 +149,28 @@ function applySort(mode) {
 }
 
 // ==========================================================================
-// 6. メインコントロール ＆ イベント実装
+// 4. イベント実装 
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
     renderSpots();
 
-    const listScrollContainer = document.getElementById('list-scroll-container');
     const miniMapContainer = document.getElementById('mini-map-container');
     const closeMapBtn = document.getElementById('close-fullscreen-btn');
     const mapSearchInput = document.getElementById('map-search-input');
     const goFullscreenBtn = document.getElementById('go-fullscreen-btn');
+
+    // 🪟 全体スクロール検知（元の仕様へ完全復元）
+    window.addEventListener('scroll', () => {
+        if (miniMapContainer.classList.contains('fullscreen')) return;
+
+        if (window.scrollY > 10) {
+            miniMapContainer.classList.add('active');
+            miniMap.invalidateSize();
+        } else {
+            miniMapContainer.classList.remove('active');
+        }
+    });
 
     if (mapSearchInput) {
         mapSearchInput.addEventListener('input', (e) => {
@@ -186,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (onComplete) onComplete();
                 },
                 (err) => {
-                    console.warn("GPS失敗、仮の場所を設定します", err);
+                    console.warn("GPS失敗。仮の場所（名古屋駅）にリンクします", err);
                     processLocationSuccess(35.1709, 136.8815, false);
                     if (onComplete) onComplete();
                 },
@@ -232,34 +245,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (listScrollContainer && miniMapContainer) {
-        listScrollContainer.addEventListener('scroll', () => {
-            if (miniMapContainer.classList.contains('fullscreen')) return;
-
-            if (listScrollContainer.scrollTop > 10) {
+    if (goFullscreenBtn) {
+        goFullscreenBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!miniMapContainer.classList.contains('fullscreen')) {
+                miniMapContainer.classList.add('fullscreen');
                 miniMapContainer.classList.add('active');
-                miniMap.invalidateSize();
-            } else {
-                miniMapContainer.classList.remove('active');
+                
+                miniMap.dragging.enable();
+                miniMap.touchZoom.enable();
+                miniMap.doubleClickZoom.enable();
+                
+                setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
             }
         });
+    }
 
-        if (goFullscreenBtn) {
-            goFullscreenBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!miniMapContainer.classList.contains('fullscreen')) {
-                    miniMapContainer.classList.add('fullscreen');
-                    miniMapContainer.classList.add('active');
-                    
-                    miniMap.dragging.enable();
-                    miniMap.touchZoom.enable();
-                    miniMap.doubleClickZoom.enable();
-                    
-                    setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
-                }
-            });
-        }
-
+    if (miniMapContainer) {
         miniMapContainer.addEventListener('click', (e) => {
             if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container') || e.target.id === 'go-fullscreen-btn') return;
             
@@ -273,27 +275,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
             }
         });
+    }
 
-        if (closeMapBtn) {
-            closeMapBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                miniMapContainer.classList.remove('fullscreen');
-                
-                if (mapSearchInput) {
-                    mapSearchInput.value = '';
-                    satoriSpots.forEach(spot => {
-                        if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
-                    });
-                }
-                
-                miniMap.dragging.disable();
-                miniMap.touchZoom.disable();
-                miniMap.doubleClickZoom.disable();
-                miniMap.closePopup();
-                
-                setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
-            });
-        }
+    if (closeMapBtn) {
+        closeMapBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            miniMapContainer.classList.remove('fullscreen');
+            
+            if (mapSearchInput) {
+                mapSearchInput.value = '';
+                satoriSpots.forEach(spot => {
+                    if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
+                });
+            }
+            
+            miniMap.dragging.disable();
+            miniMap.touchZoom.disable();
+            miniMap.doubleClickZoom.disable();
+            miniMap.closePopup();
+            
+            setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
+        });
     }
 
     let startY = 0;
@@ -301,42 +303,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPulling = false;
     const loader = document.getElementById('pull-to-refresh-loader');
 
-    if (listScrollContainer && loader) {
-        listScrollContainer.addEventListener('touchstart', (e) => {
-            if (listScrollContainer.scrollTop === 0) {
-                startY = e.touches[0].pageY;
-                isPulling = true;
-            }
-        }, { passive: true });
+    window.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) {
+            startY = e.touches[0].pageY;
+            isPulling = true;
+        }
+    }, { passive: true });
 
-        listScrollContainer.addEventListener('touchmove', (e) => {
-            if (!isPulling) return;
-            currentY = e.touches[0].pageY;
-            const pullDistance = currentY - startY;
+    window.addEventListener('touchmove', (e) => {
+        if (!isPulling) return;
+        currentY = e.touches[0].pageY;
+        const pullDistance = currentY - startY;
 
-            if (pullDistance > 50 && listScrollContainer.scrollTop === 0) {
-                loader.classList.add('pulling');
-            }
-        }, { passive: true });
+        if (pullDistance > 50 && window.scrollY === 0) {
+            loader?.classList.add('pulling');
+        }
+    }, { passive: true });
 
-        listScrollContainer.addEventListener('touchend', () => {
-            if (loader.classList.contains('pulling')) {
-                loader.querySelector('.refresh-text').innerText = "⚡ GPSハッキング中...";
-                triggerGpsHardware(() => {
-                    loader.classList.remove('pulling');
-                    setTimeout(() => {
-                        loader.querySelector('.refresh-text').innerText = "📍 現在地を再取得中...";
-                    }, 300);
-                });
-            }
-            isPulling = false;
-        });
-    }
+    window.addEventListener('touchend', () => {
+        if (loader?.classList.contains('pulling')) {
+            loader.querySelector('.refresh-text').innerText = "⚡ GPSハッキング中...";
+            triggerGpsHardware(() => {
+                loader.classList.remove('pulling');
+                setTimeout(() => {
+                    loader.querySelector('.refresh-text').innerText = "📍 現在地を再取得中...";
+                }, 300);
+            });
+        }
+        isPulling = false;
+    });
 
     document.getElementById('sort-selector')?.addEventListener('change', e => applySort(e.target.value));
     document.getElementById('theme-selector')?.addEventListener('change', e => document.body.setAttribute('data-theme', e.target.value));
 
-    // 🚨 【完全復活】すべてのUIの初期化イベントが完了したため、ローディングをここで確実に解除！
     const initLoading = document.getElementById('init-loading-overlay');
     if (initLoading) {
         setTimeout(() => {

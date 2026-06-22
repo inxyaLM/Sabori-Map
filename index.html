@@ -10,7 +10,9 @@
 <body>
 
     <div id="init-loading-overlay" class="init-loading-overlay">
-        <div class="init-spinner"></div>
+        <div class="init-shades-container">
+            <span class="init-shades">🕶️</span>
+        </div>
         <div class="init-loading-text">📡 衛生リンク確立中...</div>
     </div>
 
@@ -18,49 +20,43 @@
         <h1>SABORI MAP</h1>
     </header>
 
-    <main class="app-container">
-        <div id="sticky-wrapper">
-            
-            <div id="pull-to-refresh-loader" class="refresh-loader">
-                <div class="spinner"></div>
-                <span class="refresh-text">📍 現在地を再取得中...</span>
-            </div>
-            
-            <div id="map">
-                <button id="go-fullscreen-btn" class="go-fullscreen-btn">
-                    <span>🔍 地図を拡大</span>
-                </button>
-            </div>
-
-            <div class="control-panel" id="trigger-panel">
-                <div class="select-container">
-                    <select id="sort-selector" aria-label="スポット並び替え">
-                        <option value="user-distance">📍 現在地から近い順</option>
-                        <option value="hidden-level">🕶️ 隠蔽レベルが高い順</option>
-                        <option value="parking-easy">🚗 駐車のしやすさ順</option>
-                    </select>
-                    <select id="theme-selector" aria-label="テーマ切り替え">
-                        <option value="dark">🕶️ 夜間迷彩</option>
-                        <option value="light">☀️ 昼間モード</option>
-                    </select>
-                </div>
-                <button id="gps-btn">📍 現在地から探す</button>
-            </div>
+    <div id="sticky-wrapper">
+        <div id="pull-to-refresh-loader" class="refresh-loader">
+            <div class="spinner"></div>
+            <span class="refresh-text">📍 現在地を再取得中...</span>
+        </div>
+        
+        <div id="map">
+            <button id="go-fullscreen-btn" class="go-fullscreen-btn">
+                <span>🔍 地図を拡大</span>
+            </button>
         </div>
 
-        <div id="list-scroll-container">
-            <div id="spot-list"></div>
-        </div>
-
-        <div id="mini-map-container" class="floating-mini-map">
-            <div id="mini-map"></div>
-            <button id="close-fullscreen-btn" class="close-map-btn">閉じる</button>
-
-            <div class="map-search-container">
-                <input type="text" id="map-search-input" class="map-search-input" placeholder="スポット名・キーワード・タグでピンを検索..." aria-label="ピンを検索">
+        <div class="control-panel" id="trigger-panel">
+            <div class="select-container">
+                <select id="sort-selector">
+                    <option value="user-distance">📍 現在地から近い順</option>
+                    <option value="hidden-level">🕶️ 隠蔽レベルが高い順</option>
+                    <option value="parking-easy">🚗 駐車のしやすさ順</option>
+                </select>
+                <select id="theme-selector">
+                    <option value="dark">🕶️ 夜間迷彩</option>
+                    <option value="light">☀️ 昼間モード</option>
+                </select>
             </div>
+            <button id="gps-btn">📍 現在地から探す</button>
         </div>
-    </main>
+    </div>
+
+    <div id="spot-list"></div>
+
+    <div id="mini-map-container" class="floating-mini-map">
+        <div id="mini-map"></div>
+        <button id="close-fullscreen-btn" class="close-map-btn">閉じる</button>
+        <div class="map-search-container">
+            <input type="text" id="map-search-input" class="map-search-input" placeholder="スポット名・キーワード・タグでピンを検索...">
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
