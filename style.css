@@ -61,7 +61,7 @@ body {
 }
 
 /* ==========================================================================
-   2. 📌 上部固定ラッパー（大きな地図が10px残してピタッと固定されるハック）
+   2. 上部固定ラッパー (メインマップ)
    ========================================================================== */
 #sticky-wrapper {
     position: sticky;
@@ -213,7 +213,7 @@ body {
 }
 
 /* ==========================================================================
-   4. 🪟 フローティングミニマップ
+   4. 🪟 フローティングミニマップ ＆ ポップアップ（全画面地図用・ガチ最適化）
    ========================================================================== */
 .floating-mini-map {
     position: fixed !important; 
@@ -266,19 +266,66 @@ body {
     transform: none !important;
 }
 
-.popup-navi-link {
+.floating-mini-map.fullscreen .leaflet-popup-content-wrapper {
+    background-color: rgba(30, 30, 30, 0.96) !important; 
+    color: #ffffff !important;
+    border-radius: 14px !important;
+    padding: 6px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px);
+}
+
+.floating-mini-map.fullscreen .leaflet-popup-content {
+    margin: 14px 18px !important;
+    width: 250px !important; 
+}
+
+.mini-popup-inside-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mini-popup-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.4;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 6px;
+}
+
+.mini-popup-desc-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #e0e0e0 !important; 
+    white-space: normal;
+}
+
+.mini-popup-btn-row {
+    margin-top: 6px;
+}
+
+.popup-navi-link-btn {
     display: block;
     text-align: center;
     background-color: var(--accent-color);
     color: white !important;
-    padding: 6px 10px;
-    border-radius: 4px;
+    padding: 10px 0;
+    border-radius: 6px;
     font-weight: bold;
     text-decoration: none;
-    margin-top: 6px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: background 0.2s;
 }
 
+.popup-navi-link-btn:active {
+    background-color: #c0392b;
+}
+
+/* 閉じるボタン等 */
 .close-map-btn {
     position: absolute !important;
     bottom: 25px !important;
@@ -368,7 +415,7 @@ body {
 }
 
 /* ==========================================================================
-   🚨 【極上アップデート】🕶️ 起動時ローディング画面
+   🚨 【完全修正】最高にイカした起動時ローディング画面 (HTMLに完全適合)
    ========================================================================== */
 .init-loading-overlay {
     position: fixed;
@@ -376,63 +423,153 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #0b0c10; /* より深みのある漆黒サイバーカラー */
+    background-color: #0b0f19; /* サイバー感のあるディープブラック */
     z-index: 9999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 25px;
+    transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.6s ease;
 }
 
 .init-loading-overlay.loaded {
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
+/* 🕶️ 怪しく光る大人のグラサン */
 .init-shades-container {
     font-size: 4.5rem;
-    animation: init-shades-spin 2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
-    display: inline-block;
-    margin-bottom: 15px;
+    filter: drop-shadow(0 0 15px rgba(231, 76, 60, 0.6));
+    animation: pulseIcon 2s infinite ease-in-out;
+    user-select: none;
 }
 
-/* 🕶️ の下に入るローディングラインの土台 */
+@keyframes pulseIcon {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(231, 76, 60, 0.5)); }
+    50% { transform: scale(1.08); filter: drop-shadow(0 0 30px rgba(231, 76, 60, 0.9)); }
+}
+
+/* 📊 ヌルヌル伸びる進捗バーのコンテナ */
 .init-progress-container {
-    width: 140px;
-    height: 4px;
+    width: 240px;
+    height: 6px;
     background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
+    border-radius: 10px;
     overflow: hidden;
-    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* 左から右へ色が染まっていくコアロジック */
+/* 🔴 赤くジワジワチャージされるインジケーター */
 .init-progress-bar {
-    width: 100%;
+    width: 0%;
     height: 100%;
-    background-color: #3498db; /* スタイリッシュなネオンブルー */
-    transform: translateX(-100%);
-    animation: init-loading-bar 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    background: linear-gradient(90deg, #e74c3c, #ff6b6b);
+    border-radius: 10px;
+    box-shadow: 0 0 10px #e74c3c;
+    transition: width 0.1s linear; /* JS側の更新と完全に同期させて超滑らかに */
 }
 
+/* 💬 エンジニア心に刺さる切り替え式おもしろテキスト */
 .init-loading-text {
-    color: #b0b3b8;
+    color: #a0aec0;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    font-family: 'Courier New', Courier, monospace;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    animation: textFadeIn 0.3s ease-out;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes textFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   🖱️ スクロール誘導オーバーレイ（起動直後に表示して自動消滅）
+   ========================================================================== */
+.scroll-guide-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.15); /* 薄い白背景を被せる */
+    backdrop-filter: blur(2px); /* ほんのり画面をボカしてメインを際立たせる */
+    z-index: 9998; /* 起動ローディング(9999)のすぐ下 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none; /* 重なっていても下の画面を邪魔しない */
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+/* ローディング終了後にJSでこのクラスをつける */
+.scroll-guide-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* フェードアウト用クラス */
+.scroll-guide-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* マウス型の外枠 */
+.scroll-icon-wrapper {
+    width: 30px;
+    height: 50px;
+    border: 2px solid #ffffff;
+    border-radius: 15px;
+    position: relative;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    animation: bounceIcon 1.5s infinite ease-in-out; /* ちょこんちょこん動く */
+}
+
+/* マウスの中のちょこんちょこん動くドット */
+.scroll-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #e74c3c; /* サボりマップのアクセント赤 */
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: scrollScroll 1.5s infinite ease-in-out;
+}
+
+/* テキストスタイル */
+.scroll-guide-text {
+    color: #ffffff;
     font-size: 0.85rem;
     font-weight: bold;
-    letter-spacing: 3px;
-    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
 
-@keyframes init-shades-spin {
-    0% { transform: scale(0.85) rotateY(0deg); }
-    50% { transform: scale(1.05) rotateY(180deg); }
-    100% { transform: scale(0.85) rotateY(360deg); }
+/* 🔄 アイコン全体のちょこんちょこん（バウンド）アニメーション */
+@keyframes bounceIcon {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); } /* ちょこんと上に跳ねる */
 }
 
-/* バーが左から右へスタイリッシュに流れるアニメーション */
-@keyframes init-loading-bar {
-    0% { transform: translateX(-100%); }
-    50% { transform: translateX(0%); }
-    100% { transform: translateX(100%); }
+/* 👇 ドットがスーッと下がるアニメーション */
+@keyframes scrollScroll {
+    0% { opacity: 0; top: 8px; }
+    30% { opacity: 1; }
+    80% { opacity: 0; top: 26px; }
+    100% { opacity: 0; top: 8px; }
 }

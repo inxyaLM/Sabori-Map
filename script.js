@@ -30,31 +30,56 @@ const DEFAULT_COORDS = [35.1325, 136.9085];
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+// ミニマップの初期状態（100px小窓時は操作をロック）
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
     boxZoom: false,
     doubleClickZoom: false,
-    dragPan: false, 
+    dragging: false, 
     scrollWheelZoom: false,
     touchZoom: false
 }).setView(DEFAULT_COORDS, 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
 
+// スポットのマッピング設定
 satoriSpots.forEach(spot => {
-    const mainMarker = L.marker([spot.lat, spot.lng]).addTo(map).bindPopup(`<b>${escapeHtml(spot.name)}</b>`);
+    // メインマップのポップアップ
+    const mainMarker = L.marker([spot.lat, spot.lng]).addTo(map).bindPopup(`<b style="color:#2c3e50;">${escapeHtml(spot.name)}</b>`);
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+    const googleMapsUrl = `http://googleusercontent.com/maps.google.com/?q=${spot.lat},${spot.lng}`;
+    
+    // 🗟 ミニマップ側：最初から綺麗に全表示するHTML
     const miniPopupContent = `
-        <div style="font-family:sans-serif; min-width:140px;">
-            <b style="font-size:0.9rem; display:block; margin-bottom:4px;">${escapeHtml(spot.name)}</b>
-            <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="popup-navi-link">🚗 ここへナビする</a>
+        <div class="mini-popup-inside-wrapper">
+            <div class="mini-popup-title">${escapeHtml(spot.name)}</div>
+            <div class="mini-popup-desc-text">${escapeHtml(spot.desc)}</div>
+            <div class="mini-popup-btn-row">
+                <a href="${googleMapsUrl}" target="_blank" rel="noopener noreferrer" class="popup-navi-link-btn">🚗 ここへナビ</a>
+            </div>
         </div>
     `;
-    const miniMarker = L.marker([spot.lat, spot.lng]).addTo(miniMap).bindPopup(miniPopupContent);
+    
+    const miniMarker = L.marker([spot.lat, spot.lng]).addTo(miniMap).bindPopup(miniPopupContent, {
+        maxWidth: 280,
+        minWidth: 240
+    });
     miniMarkers[spot.id] = miniMarker;
+});
+
+// ポップアップ内のタップイベント遮断
+miniMap.on('popupopen', function(e) {
+    const popupNode = e.popup.getElement();
+    if (!popupNode) return;
+    L.DomEvent.on(popupNode, 'click', L.DomEvent.stopPropagation);
+    L.DomEvent.on(popupNode, 'touchstart', L.DomEvent.stopPropagation);
+    
+    const naviLink = popupNode.querySelector('.popup-navi-link-btn');
+    if (naviLink) {
+        L.DomEvent.on(naviLink, 'click', L.DomEvent.stopPropagation);
+    }
 });
 
 function escapeHtml(str) {
@@ -108,7 +133,7 @@ function renderSpots() {
         const cardEl = cardWrapper.querySelector('.spot-card');
         cardEl.addEventListener('click', e => {
             if (e.target.classList.contains('navi-btn')) {
-                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+                const googleMapsUrl = `http://googleusercontent.com/maps.google.com/?q=${spot.lat},${spot.lng}`;
                 window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
             } else {
                 focusOnSpot(spot.id);
@@ -133,8 +158,14 @@ function focusOnSpot(id) {
     map.closePopup();
     miniMap.closePopup();
 
-    map.flyTo([spot.lat + 0.003, spot.lng], 14, { animate: true, duration: 0.4 });
-    miniMap.setView([spot.lat, spot.lng], 13);
+    map.flyTo([spot.lat + 0.005, spot.lng], 14, { animate: true, duration: 0.4 });
+    
+    if (document.getElementById('mini-map-container')?.classList.contains('fullscreen')) {
+        miniMap.flyTo([spot.lat, spot.lng], 14, { animate: true, duration: 0.4 });
+        setTimeout(() => { if (miniMarkers[id]) miniMarkers[id].openPopup(); }, 450);
+    } else {
+        miniMap.setView([spot.lat, spot.lng], 13);
+    }
 
     if (mainMarkers[id]) mainMarkers[id].openPopup();
 
@@ -160,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapSearchInput = document.getElementById('map-search-input');
     const goFullscreenBtn = document.getElementById('go-fullscreen-btn');
 
-    // 🪟 全体スクロール検知（元の仕様へ完全復元）
     window.addEventListener('scroll', () => {
         if (miniMapContainer.classList.contains('fullscreen')) return;
 
@@ -215,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const circleColor = isGpsActive ? '#2ecc71' : '#e74c3c';
         satoriSpots.forEach(s => s.distance = calculateDistance(userLat, userLng, s.lat, s.lng));
         
-        map.setView([userLat + 0.002, userLng], 13);
+        map.setView([userLat + 0.003, userLng], 13);
         miniMap.setView([userLat, userLng], 13);
 
         if (appState.userLocationMarker) map.removeLayer(appState.userLocationMarker);
@@ -245,35 +275,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function activateFullscreenMiniMap() {
+        if (!miniMapContainer.classList.contains('fullscreen')) {
+            miniMapContainer.classList.add('fullscreen');
+            miniMapContainer.classList.add('active');
+            
+            miniMap.dragging.enable();
+            miniMap.touchZoom.enable();
+            miniMap.doubleClickZoom.enable();
+            miniMap.scrollWheelZoom.enable();
+            if (miniMap.boxZoom) miniMap.boxZoom.enable();
+
+            setTimeout(() => { 
+                miniMap.invalidateSize({ animate: false }); 
+                
+                if (appState.selectedSpotId !== null) {
+                    const spot = satoriSpots.find(s => s.id === appState.selectedSpotId);
+                    if (spot) {
+                        miniMap.setView([spot.lat, spot.lng], 14);
+                        if (miniMarkers[spot.id]) {
+                            miniMarkers[spot.id].openPopup();
+                        }
+                    }
+                } else if (appState.currentLat && appState.currentLng) {
+                    miniMap.setView([appState.currentLat, appState.currentLng], 13);
+                }
+            }, 400);
+        }
+    }
+
     if (goFullscreenBtn) {
         goFullscreenBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!miniMapContainer.classList.contains('fullscreen')) {
-                miniMapContainer.classList.add('fullscreen');
-                miniMapContainer.classList.add('active');
-                
-                miniMap.dragging.enable();
-                miniMap.touchZoom.enable();
-                miniMap.doubleClickZoom.enable();
-                
-                setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
-            }
+            activateFullscreenMiniMap();
         });
     }
 
     if (miniMapContainer) {
         miniMapContainer.addEventListener('click', (e) => {
             if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container') || e.target.id === 'go-fullscreen-btn') return;
-            
-            if (!miniMapContainer.classList.contains('fullscreen')) {
-                miniMapContainer.classList.add('fullscreen');
-                
-                miniMap.dragging.enable();
-                miniMap.touchZoom.enable();
-                miniMap.doubleClickZoom.enable();
-                
-                setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
-            }
+            activateFullscreenMiniMap();
         });
     }
 
@@ -292,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             miniMap.dragging.disable();
             miniMap.touchZoom.disable();
             miniMap.doubleClickZoom.disable();
+            miniMap.scrollWheelZoom.disable();
             miniMap.closePopup();
             
             setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
@@ -336,10 +378,66 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sort-selector')?.addEventListener('change', e => applySort(e.target.value));
     document.getElementById('theme-selector')?.addEventListener('change', e => document.body.setAttribute('data-theme', e.target.value));
 
+    // 🚨 【完全修正！】HTMLのクラス名に完全に適合させたローディングバー＆テキスト切り替え
     const initLoading = document.getElementById('init-loading-overlay');
-    if (initLoading) {
-        setTimeout(() => {
-            initLoading.classList.add('loaded');
-        }, 800);
+    const progressBar = document.querySelector('.init-progress-bar');
+    const loadingText = document.querySelector('.init-loading-text');
+
+    if (initLoading && progressBar && loadingText) {
+        const scenarios = [
+            { progress: 20, text: "FETCHING_SATORI_SITES..." },
+            { progress: 45, text: "BYPASSING_COMPANY_FIREWALL..." },
+            { progress: 70, text: "SPOOFING_GPS_HARDWARE..." },
+            { progress: 90, text: "CLEANING_LOGS..." },
+            { progress: 100, text: "SYSTEM_READY_TO_ESCAPEMENT." }
+        ];
+
+        let currentScenarioIdx = 0;
+        let progressValue = 0;
+
+        const loadingInterval = setInterval(() => {
+            const target = scenarios[currentScenarioIdx];
+            
+            // 進捗を進める
+            if (progressValue < target.progress) {
+                progressValue += Math.floor(Math.random() * 3) + 1;
+                if (progressValue > target.progress) progressValue = target.progress;
+                progressBar.style.width = `${progressValue}%`;
+            }
+
+            // テキストの更新タイミング調整
+            if (loadingText.innerText !== target.text) {
+                loadingText.innerText = target.text;
+            }
+
+            // 次のチェックポイントへ移行
+            if (progressValue >= target.progress) {
+                if (currentScenarioIdx < scenarios.length - 1) {
+                    currentScenarioIdx++;
+                } else {
+                    // 100%に達したら演出終了
+                    clearInterval(loadingInterval);
+                    setTimeout(() => {
+                        // 1. まず起動ローディングを消す
+                        initLoading.classList.add('loaded');
+                        
+                        // 🚨 2. スクロールガイドを薄い白背景と一緒にフワッと出す
+                        const scrollOverlay = document.getElementById('scroll-guide-overlay');
+                        if (scrollOverlay) {
+                            scrollOverlay.classList.add('show');
+                            
+                            // 🚨 3. 2.5秒間「ちょこんちょこん」と動かした後に自動でフェードアウト
+                            setTimeout(() => {
+                                scrollOverlay.classList.add('fade-out');
+                            }, 2500); 
+                        }
+
+                    }, 400);
+                }
+            }
+        }, 40); // ヌルヌル動く高速インターバル
+    } else if (initLoading) {
+        // 万が一要素が捕まえられなかった時のセーフティフォールバック
+        setTimeout(() => { initLoading.classList.add('loaded'); }, 1200);
     }
 });
