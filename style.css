@@ -28,62 +28,47 @@
 }
 
 /* ==========================================================================
-   2. レイアウト構造
+   2. レイアウト構造（吸いつき固定＆裏潜り込みカスタム）
    ========================================================================== */
-html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100dvh; 
-    overflow: hidden;
-    background-color: var(--bg-color);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    user-select: none;
-    -webkit-user-select: none;
-}
-
-.app-header {
-    width: 100%;
-    height: 50px;
-    background-color: var(--header-bg);
-    color: var(--header-text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.app-header h1 {
-    font-size: 1.2rem;
-    margin: 0;
-    letter-spacing: 2px;
-}
-
 .app-container {
     width: 100%;
-    height: calc(100dvh - 50px); 
+    height: calc(100dvh - 50px);
     margin-top: 50px;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-.scrollable-area {
+#sticky-wrapper {
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    background-color: var(--bg-color);
     position: relative;
-    overscroll-behavior-y: contain; 
+    z-index: 10;
+    background-color: var(--panel-bg);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 #map {
     width: 100%;
-    height: 45vh;
+    height: 25vh; 
     background-color: #eee;
+    position: relative;
+}
+
+.go-fullscreen-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .control-panel {
@@ -93,41 +78,25 @@ html, body {
     box-sizing: border-box;
 }
 
-.select-container {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-select {
-    flex: 1;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background-color: var(--card-bg);
-    color: var(--text-color);
-    font-size: 0.9rem;
-}
-
-#gps-btn {
+#list-scroll-container {
     width: 100%;
-    padding: 12px;
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background-color: var(--bg-color);
+    position: relative;
+    z-index: 5;
+    overscroll-behavior-y: contain;
 }
 
 #spot-list {
     padding: 12px;
     box-sizing: border-box;
+    padding-bottom: 80px;
 }
 
 /* ==========================================================================
-   3. サボりスポットカード
+3. サボりスポットカード
    ========================================================================== */
 .spot-card {
     background-color: var(--card-bg);
@@ -209,7 +178,7 @@ select {
 }
 
 /* ==========================================================================
-   4. 🪟 左下のフローティングミニマップ（画面左下固定・全画面時見切れ完全修正版）
+   4. 🪟 左下のフローティングミニマップ
    ========================================================================== */
 .floating-mini-map {
     position: fixed !important; 
@@ -222,12 +191,9 @@ select {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
     z-index: 150 !important;
     overflow: hidden !important;
-    
-    /* 初期状態は非表示 */
     opacity: 0 !important;
     transform: scale(0.5) translateY(20px) !important;
     pointer-events: none !important;
-    
     transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 height 0.4s cubic-bezier(0.25, 1, 0.5, 1),
                 bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1),
@@ -252,20 +218,18 @@ select {
     opacity: 0.65 !important; 
 }
 
-/* 条件クリア時に付与されるアクティブクラス */
 .floating-mini-map.active {
     opacity: 1 !important;
     transform: scale(1) translateY(0) !important;
     pointer-events: auto !important;
 }
 
-/* 🔥 全画面化トランスフォーム（ヘッダー50pxの下に完璧に収める修正） */
 .floating-mini-map.fullscreen {
-    top: 50px !important; /* 👈 top: 0 から 50px に変更！黒いヘッダーの真下から開始させる */
+    top: 50px !important;
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: calc(100dvh - 50px) !important; /* 👈 100dvh から ヘッダーの50pxを引き算して画面最下部にピタッと合わせる！ */
+    height: calc(100dvh - 50px) !important;
     border-radius: 0px !important; 
     border: none !important;
     z-index: 200 !important; 
@@ -277,7 +241,6 @@ select {
     pointer-events: auto !important;
 }
 
-/* ポップアップ内のGoogleナビリンク */
 .popup-navi-link {
     display: block;
     text-align: center;
@@ -291,10 +254,9 @@ select {
     font-size: 0.85rem;
 }
 
-/* 🔥 右上の「閉じる」ボタン（見切れを回避し、より押しやすい位置に調整） */
 .close-map-btn {
     position: absolute !important;
-    bottom: 25px !important; /* 👈 topから「bottom」に変更し、Chromeの下部バーより少し上の安全圏に配置！ */
+    bottom: 25px !important;
     right: 25px !important;
     padding: 12px 22px !important;
     background-color: rgba(0, 0, 0, 0.9) !important;
@@ -314,14 +276,14 @@ select {
 }
 
 /* ==========================================================================
-   🔍 上部中央の最強検索バー（全画面時のみ登場・見切れ位置修正）
+   🔍 上部中央の検索バー
    ========================================================================== */
 .map-search-container {
     position: absolute !important;
-    top: 15px !important; /* 👈 ヘッダーのすぐ下（地図の最上部）から15pxの位置に調整 */
+    top: 15px !important;
     left: 50% !important;
     transform: translateX(-50%) translateY(-20px) !important; 
-    width: 70% !important; /* 👈 横幅を少し広げて、文字を打ちやすく調整 */
+    width: 70% !important;
     max-width: 400px !important;
     z-index: 1000 !important;
     opacity: 0 !important;
@@ -357,7 +319,7 @@ select {
 }
 
 /* ==========================================================================
-   5. 🔄 引っ張り画面更新（Pull-to-Refresh）
+   5. 🔄 引っ張り画面更新（Pull-to-Refresh）＆ スピナー
    ========================================================================== */
 .refresh-loader {
     width: 100%;
@@ -389,6 +351,51 @@ select {
 }
 
 @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   🚨 起動時ローディング画面
+   ========================================================================== */
+.init-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #111111;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.init-loading-overlay.loaded {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.init-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-left-color: var(--accent-color, #2ecc71);
+    border-radius: 50%;
+    animation: init-spin 1s linear infinite;
+}
+
+.init-loading-text {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+@keyframes init-spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }

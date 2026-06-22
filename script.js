@@ -24,7 +24,7 @@ const DEFAULT_COORDS = [35.1325, 136.9085];
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_COORDS, 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// ② 左下の小窓地図（初期状態はドラッグ等の操作を完全ロック）
+// ② 左下の小窓地図
 const miniMap = L.map('mini-map', { 
     zoomControl: false, 
     attributionControl: false,
@@ -43,8 +43,8 @@ satoriSpots.forEach(spot => {
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    // 小窓地図のピン（全画面時のみ覚醒するナビボタン付きポップアップ仕様）
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+    // 小窓地図のピン（脆弱性を修正し、テンプレートリテラルで正しく展開）
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
     const miniPopupContent = `
         <div style="font-family:sans-serif; min-width:140px;">
             <b style="font-size:0.9rem; display:block; margin-bottom:4px;">${escapeHtml(spot.name)}</b>
@@ -57,7 +57,7 @@ satoriSpots.forEach(spot => {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>"']/g, m => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": "'" }[m]));
+    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
 }
 
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -106,7 +106,7 @@ function renderSpots() {
         const cardEl = cardWrapper.querySelector('.spot-card');
         cardEl.addEventListener('click', e => {
             if (e.target.classList.contains('navi-btn')) {
-                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+                const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
                 window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
             } else {
                 focusOnSpot(spot.id);
@@ -118,7 +118,6 @@ function renderSpots() {
     listContainer.appendChild(fragment);
 }
 
-// 🎯 リストタップ時は「大画面カメラ移動」＋「小窓の中央へ追従」だけを実行！
 function focusOnSpot(id) {
     if (appState.selectedSpotId === id) {
         appState.selectedSpotId = null;
@@ -154,13 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', 'dark');
     renderSpots();
 
-    const scrollArea = document.querySelector('.scrollable-area');
-    const triggerPanel = document.getElementById('trigger-panel'); // 👈 境界線となるコントロールパネル
+    const listScrollContainer = document.getElementById('list-scroll-container');
     const miniMapContainer = document.getElementById('mini-map-container');
     const closeMapBtn = document.getElementById('close-fullscreen-btn');
     const mapSearchInput = document.getElementById('map-search-input');
+    const goFullscreenBtn = document.getElementById('go-fullscreen-btn');
 
-    // 全画面地図用のリアルタイムピン検索
     if (mapSearchInput) {
         mapSearchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
@@ -234,89 +232,94 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 🗺️ 【完全復旧】大地図が隠れたら画面の「左下」にフワッと出現する完璧なスクロール連動を再実装！
-    if (scrollArea && triggerPanel && miniMapContainer) {
-        scrollArea.addEventListener('scroll', () => {
+    if (listScrollContainer && miniMapContainer) {
+        listScrollContainer.addEventListener('scroll', () => {
             if (miniMapContainer.classList.contains('fullscreen')) return;
 
-            const panelTop = triggerPanel.getBoundingClientRect().top;
-            
-            // コントロールパネルがヘッダーのすぐ下（50px）を通過して、大地図が完全に画面外に消えたら
-            if (panelTop <= 50) {
-                miniMapContainer.classList.add('active'); // 左下に出現！
+            if (listScrollContainer.scrollTop > 10) {
+                miniMapContainer.classList.add('active');
                 miniMap.invalidateSize();
             } else {
-                miniMapContainer.classList.remove('active'); // 大地図が戻ってきたら左下から消滅！
+                miniMapContainer.classList.remove('active');
             }
         });
 
-        // 🎯 【完全復旧】左下の地図小窓をタップした時は「100%全画面化」の動きに完全固定！
+        if (goFullscreenBtn) {
+            goFullscreenBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!miniMapContainer.classList.contains('fullscreen')) {
+                    miniMapContainer.classList.add('fullscreen');
+                    miniMapContainer.classList.add('active');
+                    
+                    miniMap.dragging.enable();
+                    miniMap.touchZoom.enable();
+                    miniMap.doubleClickZoom.enable();
+                    
+                    setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
+                }
+            });
+        }
+
         miniMapContainer.addEventListener('click', (e) => {
-            if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container')) return;
+            if (e.target.id === 'close-fullscreen-btn' || e.target.closest('.map-search-container') || e.target.id === 'go-fullscreen-btn') return;
             
             if (!miniMapContainer.classList.contains('fullscreen')) {
                 miniMapContainer.classList.add('fullscreen');
                 
-                // 全画面時のみ、中の地図の操作やピンのタッチを全解放
                 miniMap.dragging.enable();
                 miniMap.touchZoom.enable();
                 miniMap.doubleClickZoom.enable();
                 
-                setTimeout(() => { miniMap.invalidateSize(); }, 400);
+                setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
             }
         });
 
-        // ✕ 閉じるボタン
-        closeMapBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            miniMapContainer.classList.remove('fullscreen');
-            
-            if (mapSearchInput) {
-                mapSearchInput.value = '';
-                satoriSpots.forEach(spot => {
-                    if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
-                });
-            }
-            
-            // 小窓に戻るので、誤操作防止のために操作系やピン判定を再ロック
-            miniMap.dragging.disable();
-            miniMap.touchZoom.disable();
-            miniMap.doubleClickZoom.disable();
-            miniMap.closePopup();
-            
-            setTimeout(() => { miniMap.invalidateSize(); }, 400);
-        });
+        if (closeMapBtn) {
+            closeMapBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                miniMapContainer.classList.remove('fullscreen');
+                
+                if (mapSearchInput) {
+                    mapSearchInput.value = '';
+                    satoriSpots.forEach(spot => {
+                        if (!miniMap.hasLayer(miniMarkers[spot.id])) miniMarkers[spot.id].addTo(miniMap);
+                    });
+                }
+                
+                miniMap.dragging.disable();
+                miniMap.touchZoom.disable();
+                miniMap.doubleClickZoom.disable();
+                miniMap.closePopup();
+                
+                setTimeout(() => { miniMap.invalidateSize({ animate: true }); }, 400);
+            });
+        }
     }
 
-    // 引っ張り更新のタッチロジック
     let startY = 0;
     let currentY = 0;
     let isPulling = false;
     const loader = document.getElementById('pull-to-refresh-loader');
 
-    if (scrollArea && loader) {
-        scrollArea.addEventListener('touchstart', (e) => {
-            if (e.target.closest('#map') || e.target.closest('#mini-map-container')) {
-                isPulling = false;
-                return;
-            }
-            if (scrollArea.scrollTop === 0) {
+    if (listScrollContainer && loader) {
+        listScrollContainer.addEventListener('touchstart', (e) => {
+            if (listScrollContainer.scrollTop === 0) {
                 startY = e.touches[0].pageY;
                 isPulling = true;
             }
         }, { passive: true });
 
-        scrollArea.addEventListener('touchmove', (e) => {
+        listScrollContainer.addEventListener('touchmove', (e) => {
             if (!isPulling) return;
             currentY = e.touches[0].pageY;
             const pullDistance = currentY - startY;
 
-            if (pullDistance > 50 && scrollArea.scrollTop === 0) {
+            if (pullDistance > 50 && listScrollContainer.scrollTop === 0) {
                 loader.classList.add('pulling');
             }
         }, { passive: true });
 
-        scrollArea.addEventListener('touchend', () => {
+        listScrollContainer.addEventListener('touchend', () => {
             if (loader.classList.contains('pulling')) {
                 loader.querySelector('.refresh-text').innerText = "⚡ GPSハッキング中...";
                 triggerGpsHardware(() => {
@@ -332,4 +335,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('sort-selector')?.addEventListener('change', e => applySort(e.target.value));
     document.getElementById('theme-selector')?.addEventListener('change', e => document.body.setAttribute('data-theme', e.target.value));
+
+    // 🚨 【完全復活】すべてのUIの初期化イベントが完了したため、ローディングをここで確実に解除！
+    const initLoading = document.getElementById('init-loading-overlay');
+    if (initLoading) {
+        setTimeout(() => {
+            initLoading.classList.add('loaded');
+        }, 800);
+    }
 });
