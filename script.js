@@ -49,7 +49,8 @@ satoriSpots.forEach(spot => {
     mainMarker.on('click', () => focusOnSpot(spot.id));
     mainMarkers[spot.id] = mainMarker;
 
-    const googleMapsUrl = `http://googleusercontent.com/maps.google.com/?q=${spot.lat},${spot.lng}`;
+    // 🗺️ 【正規化！】Googleマップ公式のユニバーサルリンク形式に修正
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
     
     // 🗟 ミニマップ側：最初から綺麗に全表示するHTML
     const miniPopupContent = `
@@ -133,7 +134,8 @@ function renderSpots() {
         const cardEl = cardWrapper.querySelector('.spot-card');
         cardEl.addEventListener('click', e => {
             if (e.target.classList.contains('navi-btn')) {
-                const googleMapsUrl = `http://googleusercontent.com/maps.google.com/?q=${spot.lat},${spot.lng}`;
+                // 🗺️ 【正規化！】リストカード側のナビURLも同様に公式形式へ修正
+                const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
                 window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
             } else {
                 focusOnSpot(spot.id);
@@ -378,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sort-selector')?.addEventListener('change', e => applySort(e.target.value));
     document.getElementById('theme-selector')?.addEventListener('change', e => document.body.setAttribute('data-theme', e.target.value));
 
-    // 🚨 【完全修正！】HTMLのクラス名に完全に適合させたローディングバー＆テキスト切り替え
     const initLoading = document.getElementById('init-loading-overlay');
     const progressBar = document.querySelector('.init-progress-bar');
     const loadingText = document.querySelector('.init-loading-text');
@@ -398,35 +399,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadingInterval = setInterval(() => {
             const target = scenarios[currentScenarioIdx];
             
-            // 進捗を進める
             if (progressValue < target.progress) {
                 progressValue += Math.floor(Math.random() * 3) + 1;
                 if (progressValue > target.progress) progressValue = target.progress;
                 progressBar.style.width = `${progressValue}%`;
             }
 
-            // テキストの更新タイミング調整
             if (loadingText.innerText !== target.text) {
                 loadingText.innerText = target.text;
             }
 
-            // 次のチェックポイントへ移行
             if (progressValue >= target.progress) {
                 if (currentScenarioIdx < scenarios.length - 1) {
                     currentScenarioIdx++;
                 } else {
-                    // 100%に達したら演出終了
                     clearInterval(loadingInterval);
                     setTimeout(() => {
-                        // 1. まず起動ローディングを消す
                         initLoading.classList.add('loaded');
                         
-                        // 🚨 2. スクロールガイドを薄い白背景と一緒にフワッと出す
                         const scrollOverlay = document.getElementById('scroll-guide-overlay');
                         if (scrollOverlay) {
                             scrollOverlay.classList.add('show');
                             
-                            // 🚨 3. 2.5秒間「ちょこんちょこん」と動かした後に自動でフェードアウト
                             setTimeout(() => {
                                 scrollOverlay.classList.add('fade-out');
                             }, 2500); 
@@ -435,9 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 400);
                 }
             }
-        }, 40); // ヌルヌル動く高速インターバル
+        }, 40);
     } else if (initLoading) {
-        // 万が一要素が捕まえられなかった時のセーフティフォールバック
         setTimeout(() => { initLoading.classList.add('loaded'); }, 1200);
     }
 });
