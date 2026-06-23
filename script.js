@@ -417,12 +417,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => {
                         initLoading.classList.add('loaded');
                         
+                        // ...（上のコードは一切いじらない）...
+
+                        // 2. スクロールガイドを薄い白背景と一緒にフワッと出す
                         const scrollOverlay = document.getElementById('scroll-guide-overlay');
                         if (scrollOverlay) {
                             scrollOverlay.classList.add('show');
                             
+                            // 🚨 【ここを追記！】タップ、スクロール、または指を動かしたら即座に消す関数
+                            const removeScrollOverlay = () => {
+                                if (scrollOverlay.classList.contains('show') && !scrollOverlay.classList.contains('fade-out')) {
+                                    scrollOverlay.classList.add('fade-out');
+                                }
+                                // イベントリスナーを綺麗に解除
+                                window.removeEventListener('scroll', removeScrollOverlay);
+                                window.removeEventListener('touchstart', removeScrollOverlay);
+                                window.removeEventListener('click', removeScrollOverlay);
+                            };
+
+                            // イベントを設定（スクロール、画面タップ、タッチ開始）
+                            window.addEventListener('scroll', removeScrollOverlay, { passive: true });
+                            window.addEventListener('touchstart', removeScrollOverlay, { passive: true });
+                            window.addEventListener('click', removeScrollOverlay, { passive: true });
+                            
+                            // 3. 何も操作しなくても2.5秒経ったら自動でフェードアウト（セーフティ）
                             setTimeout(() => {
-                                scrollOverlay.classList.add('fade-out');
+                                removeScrollOverlay();
                             }, 2500); 
                         }
 
@@ -430,6 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }, 40);
+// ...
     } else if (initLoading) {
         setTimeout(() => { initLoading.classList.add('loaded'); }, 1200);
     }
